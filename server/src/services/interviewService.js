@@ -7,6 +7,9 @@ import {
   updateSession,
 } from "./interviewSessionStore.js";
 import {
+  buildCandidateIntelligence,
+} from "./candidateProfileService.js";
+import {
   evaluateAnswerAndGenerateNextQuestion,
   generateFirstQuestion,
 } from "./questionService.js";
@@ -16,27 +19,20 @@ const MINIMUM_DAYS = 4;
 
 const getTopicName = (topic) => topic.title || topic.topic;
 
-const selectInitialTopic = (candidate) => {
-  const missions = candidate?.missions || [];
-
-  const skippedDays = new Set(
-    missions
-      .filter((mission) => mission.skipped === true)
-      .map((mission) => mission.day),
+const selectInitialTopic = (candidate, intelligence) => {
+  const priorityDays = new Set(
+    intelligence.learningSignals.priorityDays,
   );
 
-  const failedDays = new Set(
-    missions
-      .filter((mission) => mission.passed === false)
-      .map((mission) => mission.day),
+  const priorityTopic = curriculum.find((topic) =>
+    priorityDays.has(topic.day),
   );
 
-  const preferredTopic = curriculum.find(
-    (topic) => skippedDays.has(topic.day) || failedDays.has(topic.day),
-  );
+  if (priorityTopic) {
+    return priorityTopic;
+  }
 
   return (
-    preferredTopic ||
     curriculum.find((topic) => topic.day === 7) ||
     curriculum[0]
   );
@@ -44,16 +40,31 @@ const selectInitialTopic = (candidate) => {
 
 const selectNextTopic = (session) => {
   const coveredDays = new Set(session.coveredDays);
+  const priorityDays = new Set(
+    session.candidateIntelligence.learningSignals.priorityDays,
+  );
 
-  const uncovered = curriculum.filter(
+  const priorityTopic = curriculum.find(
+    (topic) =>
+      priorityDays.has(topic.day) &&
+      !coveredDays.has(topic.day),
+  );
+
+  if (priorityTopic) {
+    return priorityTopic;
+  }
+
+  const uncoveredTopic = curriculum.find(
     (topic) => !coveredDays.has(topic.day),
   );
 
-  if (uncovered.length > 0) {
-    return uncovered[0];
+  if (uncoveredTopic) {
+    return uncoveredTopic;
   }
 
-  return curriculum[session.questionsAsked.length % curriculum.length];
+  return curriculum[
+    session.questionsAsked.length % curriculum.length
+  ];
 };
 
 const hasMinimumCoverage = (session) => {
@@ -77,7 +88,9 @@ const calculateAverageScore = (evaluations) => {
 };
 
 const collectUniqueItems = (evaluations, field) => {
-  const items = evaluations.flatMap((evaluation) => evaluation[field] || []);
+  const items = evaluations.flatMap(
+    (evaluation) => evaluation[field] || [],
+  );
 
   return [...new Set(items)];
 };
@@ -87,11 +100,21 @@ const buildFeedback = (session) => {
 
   const averageScore = calculateAverageScore(evaluations);
 
-  const strengths = collectUniqueItems(evaluations, "strengths");
-  const gaps = collectUniqueItems(evaluations, "gaps");
+  const strengths = collectUniqueItems(
+    evaluations,
+    "strengths",
+  );
+
+  const gaps = collectUniqueItems(
+    evaluations,
+    "gaps",
+  );
 
   const strongestAreas = evaluations
-    .filter((evaluation) => evaluation.understanding === "strong")
+    .filter(
+      (evaluation) =>
+        evaluation.understanding === "strong",
+    )
     .map((evaluation) => evaluation.topic)
     .filter(Boolean);
 
@@ -113,6 +136,9 @@ const buildFeedback = (session) => {
     gaps,
     strongestAreas: [...new Set(strongestAreas)],
     weakestAreas: [...new Set(weakestAreas)],
+    candidateIntelligence:
+      session.candidateIntelligence,
+
     recommendation:
       averageScore >= 8
         ? "Strong technical understanding demonstrated across the interview."
@@ -148,27 +174,42 @@ export const startInterview = async ({
   }
 
   if (getSession(sessionId)) {
-    const error = new Error(`Interview session ${sessionId} already exists`);
+    const error = new Error(
+      `Interview session ${sessionId} already exists`,
+    );
+
     error.statusCode = 409;
     throw error;
   }
 
-  const initialTopic = selectInitialTopic(candidate);
+  const candidateIntelligence =
+    buildCandidateIntelligence(candidate);
+
+  const initialTopic = selectInitialTopic(
+    candidate,
+    candidateIntelligence,
+  );
 
   if (!initialTopic) {
-    const error = new Error("No curriculum topic is available");
+    const error = new Error(
+      "No curriculum topic is available",
+    );
+
     error.statusCode = 500;
     throw error;
   }
 
   const question = await generateFirstQuestion({
     candidate,
+    candidateIntelligence,
     curriculumTopic: initialTopic,
   });
 
   const session = {
     id: sessionId,
     candidate,
+    candidateIntelligence,
+
     status: "active",
     startedAt: new Date().toISOString(),
 
@@ -191,7 +232,9 @@ export const startInterview = async ({
     ],
 
     coveredDays: [initialTopic.day],
-    coveredTopics: [getTopicName(initialTopic)],
+    coveredTopics: [
+      getTopicName(initialTopic),
+    ],
 
     followUps: [],
 
@@ -222,19 +265,27 @@ export const submitInterviewAnswer = async ({
   const session = getSession(sessionId);
 
   if (!session) {
-    const error = new Error(`Interview session ${sessionId} not found`);
+    const error = new Error(
+      `Interview session ${sessionId} not found`,
+    );
+
     error.statusCode = 404;
     throw error;
   }
 
   if (session.status === "completed") {
-    const error = new Error("Interview session is already completed");
+    const error = new Error(
+      "Interview session is already completed",
+    );
+
     error.statusCode = 409;
     throw error;
   }
 
   const latestQuestion =
-    session.questionsAsked[session.questionsAsked.length - 1];
+    session.questionsAsked[
+      session.questionsAsked.length - 1
+    ];
 
   const latestAnswer = {
     id: randomUUID(),
@@ -244,27 +295,34 @@ export const submitInterviewAnswer = async ({
   };
 
   const currentTopic = curriculum.find(
-    (topic) => topic.day === latestQuestion.day,
+    (topic) =>
+      topic.day === latestQuestion.day,
   );
 
   if (!currentTopic) {
     const error = new Error(
       `Curriculum day ${latestQuestion.day} is not available`,
     );
+
     error.statusCode = 500;
     throw error;
   }
 
-  const evaluationResult = await evaluateAnswerAndGenerateNextQuestion({
-    candidate: session.candidate,
-    curriculumTopic: currentTopic,
-    previousQuestions: session.questionsAsked,
-    previousAnswers: session.answers,
-    previousEvaluations: session.evaluations,
-    latestQuestion,
-    latestAnswer,
-    progress: buildProgress(session),
-  });
+  const evaluationResult =
+    await evaluateAnswerAndGenerateNextQuestion({
+      candidate: session.candidate,
+      candidateIntelligence:
+        session.candidateIntelligence,
+      curriculumTopic: currentTopic,
+      previousQuestions:
+        session.questionsAsked,
+      previousAnswers: session.answers,
+      previousEvaluations:
+        session.evaluations,
+      latestQuestion,
+      latestAnswer,
+      progress: buildProgress(session),
+    });
 
   const answerRecord = {
     ...latestAnswer,
@@ -282,14 +340,19 @@ export const submitInterviewAnswer = async ({
     createdAt: new Date().toISOString(),
   };
 
-  const answers = [...session.answers, answerRecord];
+  const answers = [
+    ...session.answers,
+    answerRecord,
+  ];
 
   const evaluations = [
     ...session.evaluations,
     evaluationRecord,
   ];
 
-  const action = evaluationResult.evaluation.recommendedAction;
+  const action =
+    evaluationResult.evaluation
+      .recommendedAction;
 
   const useFollowUp =
     action === "follow_up" ||
@@ -297,29 +360,35 @@ export const submitInterviewAnswer = async ({
 
   const nextTopic = useFollowUp
     ? currentTopic
-    : selectNextTopic({
-        ...session,
-        questionsAsked: session.questionsAsked,
-        coveredDays: session.coveredDays,
-      });
+    : selectNextTopic(session);
 
   const nextQuestion = {
     id: randomUUID(),
     text: evaluationResult.nextQuestion.text,
     day: nextTopic.day,
     topic: getTopicName(nextTopic),
-    difficulty: evaluationResult.nextQuestion.difficulty,
+    difficulty:
+      evaluationResult.nextQuestion.difficulty,
   };
 
-  const coveredDays = session.coveredDays.includes(nextTopic.day)
-    ? session.coveredDays
-    : [...session.coveredDays, nextTopic.day];
-
-  const coveredTopics = session.coveredTopics.includes(
-    getTopicName(nextTopic),
+  const coveredDays = session.coveredDays.includes(
+    nextTopic.day,
   )
-    ? session.coveredTopics
-    : [...session.coveredTopics, getTopicName(nextTopic)];
+    ? session.coveredDays
+    : [
+        ...session.coveredDays,
+        nextTopic.day,
+      ];
+
+  const coveredTopics =
+    session.coveredTopics.includes(
+      getTopicName(nextTopic),
+    )
+      ? session.coveredTopics
+      : [
+          ...session.coveredTopics,
+          getTopicName(nextTopic),
+        ];
 
   const questionsAsked = [
     ...session.questionsAsked,
@@ -348,7 +417,8 @@ export const submitInterviewAnswer = async ({
 
     currentDay: nextTopic.day,
     currentTopic: getTopicName(nextTopic),
-    currentDifficulty: nextQuestion.difficulty,
+    currentDifficulty:
+      nextQuestion.difficulty,
 
     questionsAsked,
     answers,
@@ -364,51 +434,59 @@ export const submitInterviewAnswer = async ({
           ...session.followUps,
           {
             questionId: nextQuestion.id,
-            focus: evaluationResult.evaluation.followUpFocus,
+            focus:
+              evaluationResult
+                .evaluation.followUpFocus,
           },
         ]
       : session.followUps,
   };
 
-  /*
-   * We determine completion AFTER evaluating the candidate's latest
-   * answer. This means the final required answer contributes to
-   * the candidate's score.
-   */
   if (hasMinimumCoverage(updatedSession)) {
-    const feedback = buildFeedback(updatedSession);
+    const feedback =
+      buildFeedback(updatedSession);
 
-    const completedSession = updateSession(sessionId, {
-      ...updatedSession,
-      status: "completed",
-      completedAt: new Date().toISOString(),
-      feedback,
-    });
+    const completedSession =
+      updateSession(sessionId, {
+        ...updatedSession,
+        status: "completed",
+        completedAt:
+          new Date().toISOString(),
+        feedback,
+      });
 
     return {
       reply: "Interview completed.",
       done: true,
-      feedback: completedSession.feedback,
+      feedback:
+        completedSession.feedback,
     };
   }
 
-  const activeSession = updateSession(sessionId, {
-    ...updatedSession,
-    status: "active",
-  });
+  const activeSession =
+    updateSession(sessionId, {
+      ...updatedSession,
+      status: "active",
+    });
 
   return {
     reply: nextQuestion.text,
     done: false,
-    progress: buildProgress(activeSession),
+    progress:
+      buildProgress(activeSession),
   };
 };
 
-export const getInterviewSession = (sessionId) => {
+export const getInterviewSession = (
+  sessionId,
+) => {
   const session = getSession(sessionId);
 
   if (!session) {
-    const error = new Error(`Interview session ${sessionId} not found`);
+    const error = new Error(
+      `Interview session ${sessionId} not found`,
+    );
+
     error.statusCode = 404;
     throw error;
   }
