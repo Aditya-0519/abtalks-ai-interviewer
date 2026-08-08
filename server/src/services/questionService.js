@@ -129,6 +129,9 @@ const buildQuestion = ({
   difficulty,
 });
 
+const getTopicName = (topic) =>
+  topic.title || topic.topic;
+
 export const generateFirstQuestion = async ({
   candidate,
   candidateIntelligence,
@@ -155,6 +158,7 @@ ${JSON.stringify(
 Generate the first technical interview question.
 
 The question must:
+
 - test real understanding
 - match the candidate's experience
 - match the candidate's recommended difficulty
@@ -162,6 +166,7 @@ The question must:
 - remain grounded in the curriculum
 - be suitable for a technical interview
 - avoid requiring information outside the supplied curriculum
+- be specific to the supplied curriculum topic
 `;
 
   const result =
@@ -178,11 +183,98 @@ The question must:
     difficulty:
       result.difficulty,
     day: curriculumTopic.day,
-    topic:
-      curriculumTopic.title ||
-      curriculumTopic.topic,
+    topic: getTopicName(curriculumTopic),
   });
 };
+
+export const generateQuestionForTopic =
+  async ({
+    candidate,
+    candidateIntelligence,
+    curriculumTopic,
+    previousQuestions,
+    previousAnswers,
+    previousEvaluations,
+    previousEvaluation,
+  }) => {
+    const prompt = `
+Candidate:
+${JSON.stringify(candidate, null, 2)}
+
+Candidate intelligence:
+${JSON.stringify(
+  candidateIntelligence,
+  null,
+  2,
+)}
+
+Target curriculum topic:
+${JSON.stringify(
+  curriculumTopic,
+  null,
+  2,
+)}
+
+Previous questions:
+${JSON.stringify(
+  previousQuestions,
+  null,
+  2,
+)}
+
+Previous answers:
+${JSON.stringify(
+  previousAnswers,
+  null,
+  2,
+)}
+
+Previous evaluations:
+${JSON.stringify(
+  previousEvaluations,
+  null,
+  2,
+)}
+
+Latest evaluation:
+${JSON.stringify(
+  previousEvaluation,
+  null,
+  2,
+)}
+
+Generate exactly one new technical interview question
+for the TARGET curriculum topic.
+
+Requirements:
+
+- The question MUST be grounded in the target curriculum topic.
+- Do not ask about a previous topic merely because it appeared earlier.
+- Do not repeat any previous question.
+- Adapt difficulty to the candidate's demonstrated ability.
+- Use the previous evaluation to guide difficulty.
+- If the candidate demonstrated weakness, probe the underlying concept.
+- If the candidate demonstrated strong understanding, increase depth.
+- Keep the question suitable for a realistic technical interview.
+- Do not provide the answer.
+- Do not reveal internal reasoning.
+`;
+
+    const result =
+      await generateStructuredResponse({
+        systemInstruction:
+          interviewerSystemPrompt,
+        prompt,
+        responseSchema:
+          questionSchema,
+      });
+
+    return {
+      text: result.text,
+      difficulty:
+        result.difficulty,
+    };
+  };
 
 export const evaluateAnswerAndGenerateNextQuestion =
   async ({
@@ -263,17 +355,19 @@ ${JSON.stringify(
 Evaluate the latest answer from 0 to 10.
 
 Use the candidate intelligence when deciding whether:
+
 - the candidate needs a follow-up
 - the candidate needs a deeper question
 - the candidate should move to another topic
 - a weak or repeated-attempt area should be probed
 
 The next question must:
+
 - directly reflect the candidate's latest answer when a follow-up is appropriate
 - avoid repeating previous questions
 - increase difficulty when justified
 - probe a weakness when necessary
-- remain grounded in the curriculum
+- remain grounded in the current curriculum topic
 - remain appropriate for a technical interview
 
 Do not provide the candidate with an answer.
