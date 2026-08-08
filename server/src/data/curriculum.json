@@ -1,0 +1,598 @@
+{
+  "cohort": "AI Cohort · 31 days · 8 modules",
+  "modules": [
+    {
+      "n": 1,
+      "title": "Environment & Tooling",
+      "days": [1, 3]
+    },
+    {
+      "n": 2,
+      "title": "Data Foundations",
+      "days": [4, 6]
+    },
+    {
+      "n": 3,
+      "title": "Embeddings & Vector Search",
+      "days": [7, 10]
+    },
+    {
+      "n": 4,
+      "title": "LLM Core, Prompting & Fine-Tuning",
+      "days": [11, 15]
+    },
+    {
+      "n": 5,
+      "title": "Chatbot Application Build",
+      "days": [16, 20]
+    },
+    {
+      "n": 6,
+      "title": "Agentic AI & MCP",
+      "days": [21, 24]
+    },
+    {
+      "n": 7,
+      "title": "Evaluation, Security & Deployment",
+      "days": [25, 28]
+    },
+    {
+      "n": 8,
+      "title": "Production & Capstone",
+      "days": [29, 31]
+    }
+  ],
+  "days": [
+    {
+      "day": 1,
+      "title": "VS Code & Python Environment Setup",
+      "type": "SETUP",
+      "tools": [
+        "VS Code",
+        "Python",
+        "Python Extension",
+        "Pylance",
+        "Virtual Environment"
+      ],
+      "objectives": [
+        "Install VS Code and Python on your machine",
+        "Configure the Python extension and Pylance",
+        "Create and activate a project virtual environment (.venv)",
+        "Run and debug your first Python program inside VS Code",
+        "Verify the development environment is ready for the remaining course"
+      ]
+    },
+    {
+      "day": 2,
+      "title": "Local LLM & AI Coding Assistant Setup",
+      "type": "SETUP",
+      "tools": [
+        "Ollama",
+        "Qwen2.5-Coder",
+        "GitHub Copilot",
+        "Cline"
+      ],
+      "objectives": [
+        "Install Ollama and download a local coding model",
+        "Verify the local model works through the Ollama CLI",
+        "Connect VS Code to the local model using GitHub Copilot or Cline",
+        "Generate code using the local AI assistant",
+        "Confirm the complete AI coding workflow works offline"
+      ]
+    },
+    {
+      "day": 3,
+      "title": "First AI Project, React Frontend & GitHub",
+      "type": "BUILD",
+      "tools": [
+        "Python",
+        "Ollama",
+        "FastAPI",
+        "React",
+        "Vite",
+        "Git",
+        "GitHub"
+      ],
+      "objectives": [
+        "Build a command-line chatbot powered by your local Ollama model",
+        "Scaffold a FastAPI backend with a health endpoint",
+        "Create a React application using Vite",
+        "Connect the React frontend with the FastAPI backend",
+        "Initialize Git, commit the project, and publish it to GitHub"
+      ]
+    },
+    {
+      "day": 4,
+      "title": "Reading & Processing Structured Data",
+      "type": "BUILD",
+      "tools": [
+        "Pandas",
+        "SQLite",
+        "SQL",
+        "SQLAlchemy"
+      ],
+      "objectives": [
+        "Create synthetic healthcare plans and claims datasets",
+        "Load and clean structured CSV data using Pandas",
+        "Store the processed data in a SQLite database",
+        "Write SQL queries to answer common healthcare questions",
+        "Document reusable SQL queries for later chatbot integration"
+      ]
+    },
+    {
+      "day": 5,
+      "title": "Reading & Processing Unstructured Data",
+      "type": "BUILD",
+      "tools": [
+        "pdfplumber",
+        "PyPDF",
+        "python-docx",
+        "Tesseract OCR",
+        "BeautifulSoup",
+        "Requests"
+      ],
+      "objectives": [
+        "Extract text from healthcare PDFs and Word documents",
+        "Perform OCR on scanned enrollment forms",
+        "Scrape useful content from a public healthcare webpage",
+        "Clean and normalize extracted text from multiple sources",
+        "Store the processed text files for knowledge-base creation"
+      ]
+    },
+    {
+      "day": 6,
+    "title": "Building the Knowledge Base",
+    "type": "BUILD",
+    "tools": [
+      "LangChain Text Splitters",
+      "JSONL",
+      "Python"
+    ],
+    "objectives": [
+      "Convert structured and unstructured healthcare data into a unified knowledge base",
+      "Split long documents into retrieval-friendly chunks",
+      "Attach metadata such as source, plan type, and document section to every chunk",
+      "Export all processed records into a knowledge_base.jsonl file",
+      "Validate chunk quality before using them for embeddings"
+    ]
+  },
+  {
+    "day": 7,
+    "title": "Embeddings Explained",
+    "type": "AI_CORE",
+    "tools": [
+      "Sentence Transformers",
+      "OpenAI Embeddings",
+      "Scikit-learn",
+      "Matplotlib"
+    ],
+    "objectives": [
+      "Understand how text is converted into vector embeddings",
+      "Generate embeddings for every knowledge base chunk",
+      "Store embeddings alongside the original documents",
+      "Visualize embedding clusters using PCA",
+      "Analyze whether similar healthcare concepts cluster together"
+    ]
+  },
+  {
+    "day": 8,
+    "title": "Vector Databases Overview",
+    "type": "BUILD",
+    "tools": [
+      "ChromaDB",
+      "Pinecone"
+    ],
+    "objectives": [
+      "Learn the role of vector databases in RAG applications",
+      "Set up a local Chroma vector database",
+      "Create a cloud-based Pinecone index for comparison",
+      "Compare local and managed vector database solutions",
+      "Select the most suitable database for the chatbot project"
+    ]
+  },
+  {
+    "day": 9,
+    "title": "Building & Populating the Vector Database",
+    "type": "BUILD",
+    "tools": [
+      "ChromaDB",
+      "Sentence Transformers"
+    ],
+    "objectives": [
+      "Load knowledge base embeddings into the vector database",
+      "Store documents together with metadata for filtering",
+      "Verify that every knowledge base chunk has been indexed",
+      "Test semantic search with healthcare-related questions",
+      "Evaluate retrieval quality and metadata filtering"
+    ]
+  },
+  {
+    "day": 10,
+    "title": "The Retrieval & Matching Engine",
+    "type": "SHIP_IT",
+    "tools": [
+      "SQLite",
+      "ChromaDB",
+      "Python"
+    ],
+    "objectives": [
+      "Build a query router that decides between SQL, vector search, or hybrid retrieval",
+      "Implement structured data lookup for plans and claims",
+      "Implement semantic retrieval from the vector database",
+      "Merge and deduplicate results from multiple retrieval sources",
+      "Evaluate retrieval accuracy using a diverse set of healthcare questions"
+    ]
+  },
+  {
+    "day": 11,
+    "title": "RAG End-to-End & LLM API Basics",
+    "type": "BUILD",
+    "tools": [
+      "OpenAI SDK",
+      "Ollama",
+      "Groq",
+      "Python"
+    ],
+    "objectives": [
+      "Connect the retrieval engine to an LLM to build a complete RAG pipeline",
+      "Configure a local or hosted LLM provider using the OpenAI-compatible SDK",
+      "Create a grounded prompt that answers only from retrieved context",
+      "Generate answers using retrieved knowledge",
+      "Evaluate chatbot responses against the retrieval-only baseline"
+    ]
+  },
+  {
+    "day": 12,
+    "title": "Prompt Engineering Fundamentals",
+    "type": "LEARN",
+    "tools": [
+      "LLMs",
+      "Prompt Templates"
+    ],
+    "objectives": [
+      "Understand zero-shot, few-shot, and chain-of-thought prompting",
+      "Design multiple system prompt variations for the chatbot",
+      "Compare prompts based on accuracy, compliance, and tone",
+      "Evaluate prompt performance using a fixed question set",
+      "Finalize the production-ready system prompt"
+    ]
+  },
+  {
+    "day": 13,
+    "title": "Advanced Prompting: Function Calling & Structured Outputs",
+    "type": "BUILD",
+    "tools": [
+      "OpenAI Function Calling",
+      "Pydantic",
+      "Python"
+    ],
+    "objectives": [
+      "Define tool schemas for healthcare-related chatbot functions",
+      "Implement LLM function calling with automatic tool execution",
+      "Validate structured outputs using Pydantic models",
+      "Log tool calls for debugging and auditing",
+      "Test different user queries to verify correct tool selection"
+    ]
+  },
+  {
+    "day": 14,
+    "title": "Fine-Tuning: Concepts & When to Use It",
+    "type": "LEARN",
+    "tools": [
+      "JSONL",
+      "OpenAI",
+      "LoRA",
+      "QLoRA"
+    ],
+    "objectives": [
+      "Understand when fine-tuning is more appropriate than prompting or RAG",
+      "Identify chatbot issues that fine-tuning can solve",
+      "Create a high-quality fine-tuning dataset",
+      "Validate and organize the dataset into training and test sets",
+      "Prepare the project for model fine-tuning"
+    ]
+  },
+  {
+    "day": 15,
+    "title": "Fine-Tuning: Hands-On with LoRA & QLoRA",
+    "type": "SHIP_IT",
+    "tools": [
+      "PEFT",
+      "Transformers",
+      "BitsAndBytes",
+      "OpenAI Fine-Tuning",
+      "LoRA"
+    ],
+    "objectives": [
+      "Train or fine-tune an LLM using LoRA or the OpenAI fine-tuning workflow",
+      "Load and evaluate the fine-tuned model",
+      "Compare the base model and fine-tuned model on unseen test cases",
+      "Measure improvements in tone, consistency, and response quality",
+      "Document whether fine-tuning provides measurable benefits for the chatbot"
+    ]
+  },
+  {
+    "day": 16,
+    "title": "Chatbot Backend & API Integration",
+    "type": "BUILD",
+    "tools": [
+      "FastAPI",
+      "SQLite",
+      "Python"
+    ],
+    "objectives": [
+      "Create a /chat API endpoint for the healthcare chatbot",
+      "Integrate retrieval, function calling, and LLM response generation",
+      "Implement session-based conversation management",
+      "Build a conversation history endpoint",
+      "Test the complete backend API using Postman or cURL"
+    ]
+  },
+  {
+    "day": 17,
+    "title": "Chatbot Frontend Development",
+    "type": "BUILD",
+    "tools": [
+      "Streamlit",
+      "Requests",
+      "UUID"
+    ],
+    "objectives": [
+      "Build an interactive chat interface for the chatbot",
+      "Connect the frontend to the backend chat API",
+      "Maintain conversation history across user interactions",
+      "Add a healthcare plan selector and new conversation option",
+      "Validate end-to-end communication between frontend and backend"
+    ]
+  },
+  {
+    "day": 18,
+    "title": "Full-Stack Integration & Streaming Responses",
+    "type": "BUILD",
+    "tools": [
+      "FastAPI",
+      "StreamingResponse",
+      "Server-Sent Events",
+      "Streamlit"
+    ],
+    "objectives": [
+      "Implement real-time streaming responses from the LLM",
+      "Display generated tokens incrementally in the chat interface",
+      "Add loading indicators for a better user experience",
+      "Handle interrupted or failed streaming requests gracefully",
+      "Verify smooth end-to-end streaming between backend and frontend"
+    ]
+  },
+  {
+    "day": 19,
+    "title": "Response Formatting & Rich Outputs",
+    "type": "BUILD",
+    "tools": [
+      "Pydantic",
+      "Markdown",
+      "Streamlit"
+    ],
+    "objectives": [
+      "Add citations to chatbot responses using retrieved knowledge",
+      "Create structured cards for claims and coverage summaries",
+      "Render Markdown content with tables, lists, and formatting",
+      "Validate structured outputs before displaying them",
+      "Improve chatbot readability and response trustworthiness"
+    ]
+  },
+  {
+    "day": 20,
+    "title": "Conversation Memory & Context Management",
+    "type": "SHIP_IT",
+    "tools": [
+      "SQLite",
+      "FastAPI",
+      "LLM",
+      "Token Management"
+    ],
+    "objectives": [
+      "Persist conversation history across multiple user sessions",
+      "Build context-aware conversations using previous messages",
+      "Implement automatic conversation summarization for long chats",
+      "Manage token limits while preserving important context",
+      "Ensure the chatbot remembers user preferences throughout a conversation"
+    ]
+  },
+  {
+    "day": 21,
+    "title": "Agentic Frameworks: LangChain Agents & Tool Use",
+    "type": "BUILD",
+    "tools": [
+      "LangChain",
+      "LangChain Agents",
+      "ReAct",
+      "Python"
+    ],
+    "objectives": [
+      "Convert function-calling workflows into a reasoning agent",
+      "Wrap chatbot capabilities as reusable LangChain tools",
+      "Build a ReAct agent capable of selecting the correct tool automatically",
+      "Analyze reasoning traces to understand agent decision making",
+      "Evaluate whether the agent chooses the right tools for healthcare queries"
+    ]
+  },
+  {
+    "day": 22,
+    "title": "Multi-Agent Orchestration",
+    "type": "BUILD",
+    "tools": [
+      "CrewAI",
+      "LangGraph",
+      "Python"
+    ],
+    "objectives": [
+      "Create specialized agents for different healthcare domains",
+      "Build a router agent that delegates requests to the correct specialist",
+      "Implement a complete multi-agent workflow",
+      "Compare multi-agent performance with a single-agent architecture",
+      "Identify scenarios where multiple agents provide measurable benefits"
+    ]
+  },
+  {
+    "day": 23,
+    "title": "Model Context Protocol (MCP)",
+    "type": "BUILD",
+    "tools": [
+      "MCP Python SDK",
+      "Claude Desktop",
+      "Cline",
+      "Python"
+    ],
+    "objectives": [
+      "Understand the purpose of the Model Context Protocol",
+      "Build an MCP server exposing healthcare chatbot tools",
+      "Connect the MCP server to an MCP-compatible client",
+      "Expose multiple chatbot capabilities through standardized MCP tools",
+      "Verify successful tool execution through live MCP interactions"
+    ]
+  },
+  {
+    "day": 24,
+    "title": "Agentic Chatbot Integration",
+    "type": "SHIP_IT",
+    "tools": [
+      "LangChain",
+      "MCP",
+      "FastAPI",
+      "Python"
+    ],
+    "objectives": [
+      "Integrate agents, MCP tools, retrieval, and conversation memory",
+      "Replace mock tools with live MCP-powered tool calls",
+      "Implement retries, timeouts, and graceful error handling",
+      "Perform failure testing to validate chatbot reliability",
+      "Build a production-style agentic chatbot pipeline"
+    ]
+  },
+  {
+    "day": 25,
+    "title": "Chatbot Evaluation & Testing",
+    "type": "SHIP_IT",
+    "tools": [
+      "Python",
+      "Evaluation Dataset",
+      "Automated Testing"
+    ],
+    "objectives": [
+      "Create a benchmark dataset covering representative healthcare questions",
+      "Evaluate chatbot responses for accuracy, grounding, and consistency",
+      "Measure retrieval quality and end-to-end response performance",
+      "Identify common failure cases and document improvement areas",
+      "Establish baseline metrics before production deployment"
+    ]
+  },
+  {
+    "day": 26,
+    "title": "Performance Optimization & Cost Management",
+    "type": "OPTIMIZE",
+    "tools": [
+      "tiktoken",
+      "Python",
+      "FastAPI"
+    ],
+    "objectives": [
+      "Measure token usage across the chatbot pipeline",
+      "Optimize retrieval and prompt size to reduce latency and cost",
+      "Implement response caching for repeated queries",
+      "Benchmark response time before and after optimization",
+      "Document performance improvements using measurable metrics"
+    ]
+  },
+  {
+    "day": 27,
+    "title": "Security, Privacy & Guardrails",
+    "type": "BUILD",
+    "tools": [
+      "FastAPI",
+      "Python",
+      "Authentication",
+      "Input Validation"
+    ],
+    "objectives": [
+      "Secure chatbot APIs against unauthorized access",
+      "Validate and sanitize user inputs before processing",
+      "Protect sensitive healthcare information throughout the pipeline",
+      "Implement prompt-injection and jailbreak safeguards",
+      "Test common security scenarios and document mitigation strategies"
+    ]
+  },
+  {
+    "day": 28,
+    "title": "Docker & Kubernetes Deployment",
+    "type": "SHIP_IT",
+    "tools": [
+      "Docker",
+      "Kubernetes",
+      "FastAPI",
+      "React"
+    ],
+    "objectives": [
+      "Containerize the chatbot backend and frontend using Docker",
+      "Deploy the application to a Kubernetes cluster",
+      "Configure health checks and environment variables",
+      "Verify the deployed chatbot functions correctly",
+      "Prepare the application for production hosting"
+    ]
+  },
+  {
+    "day": 29,
+    "title": "Monitoring, Logging & Observability",
+    "type": "BUILD",
+    "tools": [
+      "Python Logging",
+      "Prometheus",
+      "Grafana"
+    ],
+    "objectives": [
+      "Add structured logging throughout the chatbot pipeline",
+      "Monitor API performance and chatbot usage",
+      "Track failures, latency, and tool execution metrics",
+      "Build dashboards for production observability",
+      "Use monitoring insights to improve chatbot reliability"
+    ]
+  },
+  {
+    "day": 30,
+    "title": "Production Readiness & Final Testing",
+    "type": "SHIP_IT",
+    "tools": [
+      "FastAPI",
+      "Docker",
+      "Kubernetes",
+      "Python"
+    ],
+    "objectives": [
+      "Perform complete end-to-end testing of the chatbot",
+      "Validate retrieval, agent workflows, and frontend integration",
+      "Fix production issues discovered during testing",
+      "Complete deployment and operational documentation",
+      "Prepare the chatbot for real-world production usage"
+    ]
+  },
+  {
+    "day": 31,
+    "title": "Capstone Project & Final Demo",
+    "type": "CAPSTONE",
+    "tools": [
+      "FastAPI",
+      "React",
+      "LangChain",
+      "MCP",
+      "Docker",
+      "Kubernetes"
+    ],
+    "objectives": [
+      "Demonstrate the complete enterprise healthcare chatbot",
+      "Showcase retrieval, RAG, agents, MCP, and conversation memory",
+      "Present the deployed application with production architecture",
+      "Evaluate the chatbot using real-world scenarios",
+      "Publish the final project with source code and documentation"
+    ]
+  }
+  ]
+}
