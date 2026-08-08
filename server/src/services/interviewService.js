@@ -102,10 +102,101 @@ const collectUniqueItems = (evaluations, field) => {
   return [...new Set(items)];
 };
 
+const countValues = (items, field) => {
+  return items.reduce((counts, item) => {
+    const value = item[field];
+
+    if (value) {
+      counts[value] = (counts[value] || 0) + 1;
+    }
+
+    return counts;
+  }, {});
+};
+
+const getPerformanceLevel = (score) => {
+  if (score >= 8.5) {
+    return "excellent";
+  }
+
+  if (score >= 7) {
+    return "strong";
+  }
+
+  if (score >= 5) {
+    return "developing";
+  }
+
+  return "needs-improvement";
+};
+
+const getScoreRecommendation = (score) => {
+  if (score >= 8.5) {
+    return "Strong technical performance. Continue practicing system design trade-offs and explaining implementation decisions with precision.";
+  }
+
+  if (score >= 7) {
+    return "Good technical foundation. Focus on deeper reasoning, edge cases, and communicating trade-offs more clearly.";
+  }
+
+  if (score >= 5) {
+    return "The candidate demonstrates a developing foundation. Strengthen weaker curriculum areas and practice explaining concepts with concrete technical examples.";
+  }
+
+  return "The candidate should strengthen core technical concepts and practice structured explanations before attempting more advanced interview questions.";
+};
+
+const buildAreaAnalysis = (evaluations) => {
+  const areaMap = new Map();
+
+  for (const evaluation of evaluations) {
+    const topic = evaluation.topic;
+
+    if (!topic) {
+      continue;
+    }
+
+    if (!areaMap.has(topic)) {
+      areaMap.set(topic, {
+        topic,
+        questions: 0,
+        totalScore: 0,
+        strong: 0,
+        weak: 0,
+      });
+    }
+
+    const area = areaMap.get(topic);
+
+    area.questions += 1;
+    area.totalScore += evaluation.score;
+
+    if (evaluation.understanding === "strong") {
+      area.strong += 1;
+    }
+
+    if (
+      evaluation.understanding === "weak" ||
+      evaluation.technicalAccuracy === "weak"
+    ) {
+      area.weak += 1;
+    }
+  }
+
+  return [...areaMap.values()]
+    .map((area) => ({
+      ...area,
+      averageScore: Number(
+        (area.totalScore / area.questions).toFixed(2),
+      ),
+    }))
+    .sort((a, b) => b.averageScore - a.averageScore);
+};
+
 const buildFeedback = (session) => {
   const evaluations = session.evaluations;
 
-  const averageScore = calculateAverageScore(evaluations);
+  const overallScore = calculateAverageScore(evaluations);
 
   const strengths = collectUniqueItems(
     evaluations,
@@ -120,7 +211,8 @@ const buildFeedback = (session) => {
   const strongestAreas = evaluations
     .filter(
       (evaluation) =>
-        evaluation.understanding === "strong",
+        evaluation.understanding === "strong" &&
+        evaluation.technicalAccuracy === "strong",
     )
     .map((evaluation) => evaluation.topic)
     .filter(Boolean);
@@ -134,23 +226,78 @@ const buildFeedback = (session) => {
     .map((evaluation) => evaluation.topic)
     .filter(Boolean);
 
+  const difficultyDistribution = countValues(
+    session.questionsAsked,
+    "difficulty",
+  );
+
+  const technicalAccuracyDistribution = countValues(
+    evaluations,
+    "technicalAccuracy",
+  );
+
+  const depthDistribution = countValues(
+    evaluations,
+    "depth",
+  );
+
+  const understandingDistribution = countValues(
+    evaluations,
+    "understanding",
+  );
+
+  const followUps = evaluations.filter(
+    (evaluation) => evaluation.needsFollowUp,
+  ).length;
+
+  const areaAnalysis = buildAreaAnalysis(evaluations);
+
+  const topStrengths = [
+    ...new Set(strongestAreas),
+  ].slice(0, 5);
+
+  const topWeaknesses = [
+    ...new Set(weakestAreas),
+  ].slice(0, 5);
+
   return {
-    overallScore: averageScore,
+    overallScore,
+    performanceLevel:
+      getPerformanceLevel(overallScore),
+
     questionsEvaluated: evaluations.length,
-    curriculumDaysCovered: session.coveredDays.length,
+
+    curriculumDaysCovered:
+      session.coveredDays.length,
+
     coveredDays: session.coveredDays,
+
+    coveredTopics: session.coveredTopics,
+
+    performanceSummary:
+      getScoreRecommendation(overallScore),
+
     strengths,
     gaps,
-    strongestAreas: [...new Set(strongestAreas)],
-    weakestAreas: [...new Set(weakestAreas)],
+
+    strongestAreas: topStrengths,
+    weakestAreas: topWeaknesses,
+
+    statistics: {
+      followUps,
+      difficultyDistribution,
+      technicalAccuracyDistribution,
+      depthDistribution,
+      understandingDistribution,
+    },
+
+    areaAnalysis,
+
     candidateIntelligence:
       session.candidateIntelligence,
+
     recommendation:
-      averageScore >= 8
-        ? "Strong technical understanding demonstrated across the interview."
-        : averageScore >= 6
-          ? "Good foundation demonstrated, with several areas that would benefit from deeper technical practice."
-          : "The candidate should strengthen core concepts and practice explaining technical decisions with greater depth.",
+      getScoreRecommendation(overallScore),
   };
 };
 
@@ -237,6 +384,7 @@ export const startInterview = async ({
     ],
 
     coveredDays: [initialTopic.day],
+
     coveredTopics: [
       getTopicName(initialTopic),
     ],
@@ -364,13 +512,6 @@ export const submitInterviewAnswer = async ({
     evaluations,
   };
 
-  /*
-   * Completion is checked BEFORE generating another question.
-   *
-   * This prevents the interview from claiming completion
-   * immediately after generating question #8. The candidate
-   * must actually answer all minimum required questions.
-   */
   if (hasMinimumCoverage(answeredSession)) {
     const feedback =
       buildFeedback(answeredSession);
@@ -404,28 +545,22 @@ export const submitInterviewAnswer = async ({
     ? currentTopic
     : selectNextTopic(answeredSession);
 
-  /*
-   * If the AI decides to change topic, generate a fresh
-   * question grounded in the selected curriculum topic.
-   *
-   * This prevents the question's topic from disagreeing
-   * with session.currentTopic.
-   */
-  const nextQuestionResult = useFollowUp
-    ? evaluationResult.nextQuestion
-    : await generateQuestionForTopic({
-        candidate: session.candidate,
-        candidateIntelligence:
-          session.candidateIntelligence,
-        curriculumTopic: nextTopic,
-        previousQuestions:
-          session.questionsAsked,
-        previousAnswers: answers,
-        previousEvaluations:
-          evaluations,
-        previousEvaluation:
-          evaluationResult.evaluation,
-      });
+  const nextQuestionResult =
+    useFollowUp
+      ? evaluationResult.nextQuestion
+      : await generateQuestionForTopic({
+          candidate: session.candidate,
+          candidateIntelligence:
+            session.candidateIntelligence,
+          curriculumTopic: nextTopic,
+          previousQuestions:
+            session.questionsAsked,
+          previousAnswers: answers,
+          previousEvaluations:
+            evaluations,
+          previousEvaluation:
+            evaluationResult.evaluation,
+        });
 
   const nextQuestion = {
     id: randomUUID(),
@@ -509,7 +644,10 @@ export const submitInterviewAnswer = async ({
   };
 
   const activeSession =
-    updateSession(sessionId, updatedSession);
+    updateSession(
+      sessionId,
+      updatedSession,
+    );
 
   return {
     reply: nextQuestion.text,
