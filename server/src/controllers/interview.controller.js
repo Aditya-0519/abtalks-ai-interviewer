@@ -22,6 +22,10 @@ export const interviewController = async (req, res, next) => {
   try {
     const body = req.body || {};
 
+    // ---------------------------------------
+    // Start interview
+    // ---------------------------------------
+
     if (body.candidate && !body.message) {
       const validation = startRequestSchema.safeParse(body);
 
@@ -29,7 +33,8 @@ export const interviewController = async (req, res, next) => {
         return res.status(400).json({
           success: false,
           error: {
-            message: "sessionId and candidate are required",
+            message:
+              "sessionId and candidate are required",
             statusCode: 400,
           },
         });
@@ -43,8 +48,13 @@ export const interviewController = async (req, res, next) => {
       return res.status(201).json({
         reply: result.reply,
         done: result.done,
+        progress: result.progress,
       });
     }
+
+    // ---------------------------------------
+    // Submit answer
+    // ---------------------------------------
 
     const validation = turnRequestSchema.safeParse(body);
 
@@ -52,7 +62,8 @@ export const interviewController = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         error: {
-          message: "sessionId and message are required",
+          message:
+            "sessionId and message are required",
           statusCode: 400,
         },
       });
@@ -63,22 +74,33 @@ export const interviewController = async (req, res, next) => {
       message: validation.data.message,
     });
 
+    // ---------------------------------------
+    // Interview completed
+    // ---------------------------------------
+
     if (result.done) {
       return res.status(200).json({
         reply: result.reply,
         done: true,
         feedback: result.feedback,
+        progress: result.progress,
       });
     }
+
+    // ---------------------------------------
+    // Continue interview
+    // ---------------------------------------
 
     return res.status(200).json({
       reply: result.reply,
       done: false,
+      progress: result.progress,
     });
   } catch (error) {
     next(error);
   }
 };
+
 
 export const getInterviewSessionController = (req, res, next) => {
   try {

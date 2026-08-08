@@ -16,20 +16,20 @@ app.use(
   cors({
     origin: true,
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json());
 
+app.use("/api", routes);
+
 app.get("/", (req, res) => {
-  res.json({
+  res.status(200).json({
     success: true,
     message: "ABTalks AI Interviewer Backend",
     environment: env.NODE_ENV,
   });
 });
-
-app.use("/api", routes);
 
 app.use(notFoundHandler);
 

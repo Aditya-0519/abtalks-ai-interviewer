@@ -304,10 +304,16 @@ const buildFeedback = (session) => {
 const buildProgress = (session) => ({
   questionsAsked: session.questionsAsked.length,
   questionsAnswered: session.answers.length,
+
   minimumQuestions: MINIMUM_QUESTIONS,
+
   daysCovered: session.coveredDays.length,
   minimumDays: MINIMUM_DAYS,
+
   coveredDays: session.coveredDays,
+
+  currentDifficulty: session.currentDifficulty,
+
   status: session.status,
 });
 
@@ -526,11 +532,11 @@ export const submitInterviewAnswer = async ({
       });
 
     return {
-      reply: "Interview completed.",
-      done: true,
-      feedback:
-        completedSession.feedback,
-    };
+  reply: "Interview completed.",
+  done: true,
+  feedback: completedSession.feedback,
+  progress: buildProgress(completedSession),
+};
   }
 
   const action =
