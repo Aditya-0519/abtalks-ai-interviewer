@@ -1,34 +1,45 @@
-import { ArrowRight, BrainCircuit } from "lucide-react";
+import {
+  ArrowRight,
+  BrainCircuit,
+  Sparkles,
+} from "lucide-react";
 import { Link } from "react-router-dom";
-import PageContainer from "../components/common/PageContainer";
 
 function HomePage() {
   return (
-    <PageContainer className="flex min-h-[calc(100vh-4rem)] items-center">
-      <section className="w-full">
-        <div className="mx-auto max-w-4xl text-center">
-          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--accent)] shadow-2xl shadow-violet-950/20">
-            <BrainCircuit size={28} />
+    <section className="min-h-[calc(100vh-76px)] px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+      <div className="mx-auto flex min-h-[calc(100vh-156px)] max-w-5xl items-center justify-center">
+        <div className="w-full text-center">
+          <div className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/5 px-4 py-2 text-sm font-medium text-cyan-300">
+            <Sparkles size={16} />
+            <span>Adaptive Technical Interviewing</span>
           </div>
 
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
-            ABTalks AI
-          </p>
+          <div className="mx-auto mb-8 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-2xl shadow-cyan-950/30">
+            <BrainCircuit
+              size={32}
+              className="text-cyan-300"
+            />
+          </div>
 
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            Build confidence for your next{" "}
-            <span className="text-[var(--accent)]">technical interview.</span>
+          <h1 className="mx-auto max-w-4xl text-4xl font-bold leading-[1.18] tracking-tight text-white sm:text-6xl sm:leading-[1.12]">
+            Build confidence by
+            <span className="block bg-gradient-to-r from-cyan-300 via-blue-400 to-violet-400 bg-clip-text pb-1 text-transparent">
+              thinking like an engineer.
+            </span>
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
-            A personalized AI interviewer designed around your learning
-            journey, technical knowledge, and previous answers.
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-400 sm:text-lg">
+            A personalized AI technical interviewer that
+            adapts its questions to your learning journey,
+            follows your answers, and evaluates your technical
+            understanding.
           </p>
 
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
               to="/interview"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--background)]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition-transform hover:scale-[1.02] hover:bg-cyan-300"
             >
               Start Interview
               <ArrowRight size={17} />
@@ -36,14 +47,14 @@ function HomePage() {
 
             <Link
               to="/feedback"
-              className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-3 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--surface-elevated)]"
+              className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/10"
             >
               View Feedback
             </Link>
           </div>
         </div>
-      </section>
-    </PageContainer>
+      </div>
+    </section>
   );
 }
 
