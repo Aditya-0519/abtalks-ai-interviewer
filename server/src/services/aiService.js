@@ -103,11 +103,10 @@ const extractTopic = (prompt) => {
 };
 
 const extractAnswer = (prompt) => {
-  const answer =
-    extractJsonObject(
-      prompt,
-      "Candidate's latest answer:",
-    );
+  const answer = extractJsonObject(
+    prompt,
+    "Candidate's latest answer:",
+  );
 
   return answer?.text || "";
 };
@@ -120,105 +119,10 @@ const mockQuestion = (
   difficulty,
 });
 
-const mockResponse = ({
+const mockEvaluation = ({
   prompt,
-  responseSchema,
+  includeNextQuestion = false,
 }) => {
-  const hasNextQuestion =
-    responseSchema?.properties?.nextQuestion;
-
-  const isEvaluation =
-    responseSchema?.properties?.score;
-
-  if (isEvaluation && !hasNextQuestion) {
-    const answer = extractAnswer(prompt);
-    const normalizedAnswer =
-      answer.toLowerCase();
-
-    const answerLength =
-      answer.trim().length;
-
-    let score = 5;
-
-    if (answerLength >= 120) {
-      score = 8;
-    } else if (answerLength >= 60) {
-      score = 7;
-    }
-
-    const hasTechnicalSignal =
-      /because|trade-?off|example|latency|accuracy|scalab|embedding|retriev|vector|model|database|api|system|index/i.test(
-        normalizedAnswer,
-      );
-
-    if (
-      hasTechnicalSignal &&
-      score < 9
-    ) {
-      score += 1;
-    }
-
-    return {
-      score: Math.min(score, 10),
-
-      understanding:
-        score >= 8
-          ? "strong"
-          : score >= 6
-            ? "developing"
-            : "weak",
-
-      strengths:
-        score >= 8
-          ? [
-              "Clear technical explanation",
-              "Relevant engineering reasoning",
-            ]
-          : [
-              "Attempted the core concept",
-            ],
-
-      gaps:
-        score >= 8
-          ? []
-          : [
-              `Add more technical depth when explaining ${extractTopic(prompt)}`,
-            ],
-
-      technicalAccuracy:
-        score >= 8
-          ? "strong"
-          : score >= 6
-            ? "partial"
-            : "weak",
-
-      depth:
-        score >= 8
-          ? "deep"
-          : score >= 6
-            ? "moderate"
-            : "shallow",
-
-      needsFollowUp: false,
-      followUpFocus: "",
-
-      recommendedAction:
-        "change_topic",
-    };
-  }
-
-  if (!hasNextQuestion) {
-    const difficulty =
-      prompt.includes('"advanced"')
-        ? "advanced"
-        : "foundational";
-
-    return mockQuestion(
-      extractTopic(prompt),
-      difficulty,
-    );
-  }
-
   const answer = extractAnswer(prompt);
   const normalizedAnswer =
     answer.toLowerCase();
@@ -246,6 +150,8 @@ const mockResponse = ({
     score += 1;
   }
 
+  const topic = extractTopic(prompt);
+
   const currentDifficulty =
     prompt.includes('"advanced"')
       ? "advanced"
@@ -261,9 +167,38 @@ const mockResponse = ({
         : "advanced"
       : currentDifficulty;
 
-  const topic = extractTopic(prompt);
+  /*
+   * Keep mock feedback realistic.
+   *
+   * Even a strong answer can have a useful
+   * improvement area. This prevents the mock
+   * interviewer from producing unrealistically
+   * perfect feedback for every answer.
+   */
+  const gaps =
+    score >= 9
+      ? [
+          `Consider exploring deeper engineering trade-offs and edge cases in ${topic}.`,
+        ]
+      : score >= 8
+        ? [
+            `Add more implementation-level detail and explain the trade-offs involved in ${topic}.`,
+          ]
+        : [
+            `Strengthen the technical explanation of ${topic} with a concrete example and clearer engineering reasoning.`,
+          ];
 
-  return {
+  const strengths =
+    score >= 8
+      ? [
+          "Clear technical explanation",
+          "Relevant engineering reasoning",
+        ]
+      : [
+          "Attempted the core concept",
+        ];
+
+  const result = {
     score: Math.min(score, 10),
 
     understanding:
@@ -273,22 +208,9 @@ const mockResponse = ({
           ? "developing"
           : "weak",
 
-    strengths:
-      score >= 8
-        ? [
-            "Clear technical explanation",
-            "Relevant engineering reasoning",
-          ]
-        : [
-            "Attempted the core concept",
-          ],
+    strengths,
 
-    gaps:
-      score >= 8
-        ? []
-        : [
-            `Add more technical depth when explaining ${topic}`,
-          ],
+    gaps,
 
     technicalAccuracy:
       score >= 8
@@ -304,17 +226,118 @@ const mockResponse = ({
           ? "moderate"
           : "shallow",
 
+    /*
+     * Mock mode intentionally does not force
+     * follow-ups because curriculum coverage is
+     * controlled deterministically by interviewService.
+     */
     needsFollowUp: false,
     followUpFocus: "",
 
     recommendedAction:
       "change_topic",
+  };
 
-    nextQuestion: mockQuestion(
+  if (includeNextQuestion) {
+    result.nextQuestion = mockQuestion(
       topic,
       nextDifficulty,
-    ),
-  };
+    );
+  }
+
+  return result;
+};
+
+const mockResponse = ({
+  prompt,
+  responseSchema,
+}) => {
+  const hasNextQuestion =
+    responseSchema?.properties?.nextQuestion;
+
+  const isEvaluation =
+    responseSchema?.properties?.score;
+
+  if (isEvaluation) {
+    return mockEvaluation({
+      prompt,
+      includeNextQuestion:
+        Boolean(hasNextQuestion),
+    });
+  }
+
+  const difficulty =
+    prompt.includes('"advanced"')
+      ? "advanced"
+      : prompt.includes('"intermediate"')
+        ? "intermediate"
+        : "foundational";
+
+  return mockQuestion(
+    extractTopic(prompt),
+    difficulty,
+  );
+};
+
+const isQuotaOrRateLimitError = (
+  error,
+) => {
+  const message =
+    error?.message ||
+    error?.error?.message ||
+    String(error);
+
+  const status =
+    error?.status ||
+    error?.statusCode ||
+    error?.code ||
+    error?.error?.code;
+
+  return (
+    Number(status) === 429 ||
+    /429|quota|rate.?limit|resource.?exhausted|too many requests|exceeded.*limit/i.test(
+      message,
+    )
+  );
+};
+
+const isTemporaryProviderError = (
+  error,
+) => {
+  const message =
+    error?.message ||
+    error?.error?.message ||
+    String(error);
+
+  const status =
+    error?.status ||
+    error?.statusCode ||
+    error?.code ||
+    error?.error?.code;
+
+  return (
+    [408, 429, 500, 502, 503, 504].includes(
+      Number(status),
+    ) ||
+    /timeout|temporarily unavailable|service unavailable|internal server error|bad gateway|gateway timeout/i.test(
+      message,
+    )
+  );
+};
+
+const generateMockFallback = ({
+  prompt,
+  responseSchema,
+  reason,
+}) => {
+  console.warn(
+    `⚠️ AI provider unavailable (${reason}). Using mock fallback.`,
+  );
+
+  return mockResponse({
+    prompt,
+    responseSchema,
+  });
 };
 
 export const generateStructuredResponse =
@@ -323,43 +346,81 @@ export const generateStructuredResponse =
     prompt,
     responseSchema,
   }) => {
-    if (
-      env.INTERVIEW_AI_MODE ===
-      "mock"
-    ) {
+    /*
+     * Explicit mock mode.
+     *
+     * Useful for local development and testing
+     * without consuming Gemini API quota.
+     */
+    if (env.INTERVIEW_AI_MODE === "mock") {
       return mockResponse({
         prompt,
         responseSchema,
       });
     }
 
-    const client = createClient();
-
-    const response =
-      await client.models.generateContent({
-        model: env.GEMINI_MODEL,
-        contents: prompt,
-        config: {
-          systemInstruction,
-          responseMimeType:
-            "application/json",
-          responseSchema,
-        },
-      });
-
-    if (!response.text) {
-      throw new Error(
-        "AI provider returned an empty response",
-      );
-    }
-
     try {
-      return JSON.parse(
-        response.text,
-      );
-    } catch {
-      throw new Error(
-        "AI provider returned invalid JSON",
-      );
+      const client = createClient();
+
+      const response =
+        await client.models.generateContent({
+          model: env.GEMINI_MODEL,
+          contents: prompt,
+          config: {
+            systemInstruction,
+            responseMimeType:
+              "application/json",
+            responseSchema,
+          },
+        });
+
+      if (!response.text) {
+        throw new Error(
+          "AI provider returned an empty response",
+        );
+      }
+
+      try {
+        return JSON.parse(
+          response.text,
+        );
+      } catch {
+        throw new Error(
+          "AI provider returned invalid JSON",
+        );
+      }
+    } catch (error) {
+      /*
+       * Provider failures must never crash the
+       * Express server.
+       *
+       * Gemini quota/rate-limit errors and temporary
+       * provider failures fall back to deterministic
+       * mock behavior so the interview can continue.
+       */
+      if (isQuotaOrRateLimitError(error)) {
+        return generateMockFallback({
+          prompt,
+          responseSchema,
+          reason:
+            "Gemini quota/rate limit reached",
+        });
+      }
+
+      if (isTemporaryProviderError(error)) {
+        return generateMockFallback({
+          prompt,
+          responseSchema,
+          reason:
+            "temporary AI provider failure",
+        });
+      }
+
+      /*
+       * Configuration/programming errors should still
+       * surface during development instead of being
+       * silently hidden.
+       */
+      throw error;
     }
   };

@@ -60,6 +60,38 @@ Final Structured Feedback
 
 ---
 
+---
+
+## AI Availability & Fallback
+
+The application normally runs in **live AI mode** using the configured
+Gemini model.
+
+The interview backend also includes a controlled fallback mechanism for
+temporary AI provider failures.
+
+If the configured AI provider returns a quota/rate-limit error such as
+HTTP 429, or a temporary provider availability error, the backend:
+
+1. Detects the provider failure.
+2. Prevents the error from terminating the server process.
+3. Falls back to the application's mock interview response generator.
+4. Continues the interview session using the same interview lifecycle.
+
+This ensures that temporary AI provider availability issues do not make
+the deployed application unusable during testing or judging.
+
+The fallback does not change the interview API contract or the session
+management logic.
+
+### Interview AI Modes
+
+The backend supports two modes through the
+`INTERVIEW_AI_MODE` environment variable:
+
+```env
+INTERVIEW_AI_MODE=live
+
 ## Interview Completion
 
 The interview completes when both requirements are satisfied:
