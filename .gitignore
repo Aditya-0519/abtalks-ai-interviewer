@@ -1,7 +1,16 @@
-# Dependencies
 node_modules/
-
-# Environment variables
 .env
-server/.env
-client/.env
+.env.*
+!.env.example
+
+dist/
+build/
+
+.DS_Store
+Thumbs.db
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+.vscode/

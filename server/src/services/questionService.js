@@ -116,6 +116,40 @@ const evaluationSchema = {
   ],
 };
 
+const answerEvaluationSchema = {
+  type: "object",
+  properties: {
+    score: evaluationSchema.properties.score,
+    understanding:
+      evaluationSchema.properties.understanding,
+    strengths:
+      evaluationSchema.properties.strengths,
+    gaps:
+      evaluationSchema.properties.gaps,
+    technicalAccuracy:
+      evaluationSchema.properties.technicalAccuracy,
+    depth:
+      evaluationSchema.properties.depth,
+    needsFollowUp:
+      evaluationSchema.properties.needsFollowUp,
+    followUpFocus:
+      evaluationSchema.properties.followUpFocus,
+    recommendedAction:
+      evaluationSchema.properties.recommendedAction,
+  },
+  required: [
+    "score",
+    "understanding",
+    "strengths",
+    "gaps",
+    "technicalAccuracy",
+    "depth",
+    "needsFollowUp",
+    "followUpFocus",
+    "recommendedAction",
+  ],
+};
+
 const buildQuestion = ({
   text,
   difficulty,
@@ -276,81 +310,80 @@ Requirements:
     };
   };
 
-export const evaluateAnswerAndGenerateNextQuestion =
-  async ({
-    candidate,
-    candidateIntelligence,
-    curriculumTopic,
-    previousQuestions,
-    previousAnswers,
-    previousEvaluations,
-    latestQuestion,
-    latestAnswer,
-    progress,
-  }) => {
-    const prompt = `
+export const evaluateAnswer = async ({
+  candidate,
+  candidateIntelligence,
+  curriculumTopic,
+  previousQuestions,
+  previousAnswers,
+  previousEvaluations,
+  latestQuestion,
+  latestAnswer,
+  progress,
+}) => {
+  const prompt = `
 Candidate profile:
 ${JSON.stringify(
-  candidate,
-  null,
-  2,
-)}
+    candidate,
+    null,
+    2,
+  )}
 
 Candidate intelligence:
 ${JSON.stringify(
-  candidateIntelligence,
-  null,
-  2,
-)}
+    candidateIntelligence,
+    null,
+    2,
+  )}
 
 Current curriculum topic:
 ${JSON.stringify(
-  curriculumTopic,
-  null,
-  2,
-)}
+    curriculumTopic,
+    null,
+    2,
+  )}
 
 Latest question:
 ${JSON.stringify(
-  latestQuestion,
-  null,
-  2,
-)}
+    latestQuestion,
+    null,
+    2,
+  )}
 
 Candidate's latest answer:
 ${JSON.stringify(
-  latestAnswer,
-  null,
-  2,
-)}
+    latestAnswer,
+    null,
+    2,
+  )}
 
 Previous questions:
 ${JSON.stringify(
-  previousQuestions,
-  null,
-  2,
-)}
+    previousQuestions,
+    null,
+    2,
+  )}
 
 Previous answers:
 ${JSON.stringify(
-  previousAnswers,
-  null,
-  2,
-)}
+    previousAnswers,
+    null,
+    2,
+  )}
 
 Previous evaluations:
 ${JSON.stringify(
-  previousEvaluations,
-  null,
-  2,
-)}
+    previousEvaluations,
+    null,
+    2,
+  )}
 
 Interview progress:
 ${JSON.stringify(
-  progress,
-  null,
-  2,
-)}
+    progress,
+    null,
+    2,
+  )}
 
 Evaluate the latest answer from 0 to 10.
 
@@ -361,52 +394,37 @@ Use the candidate intelligence when deciding whether:
 - the candidate should move to another topic
 - a weak or repeated-attempt area should be probed
 
-The next question must:
-
-- directly reflect the candidate's latest answer when a follow-up is appropriate
-- avoid repeating previous questions
-- increase difficulty when justified
-- probe a weakness when necessary
-- remain grounded in the current curriculum topic
-- remain appropriate for a technical interview
-
+Do not generate a next question.
 Do not provide the candidate with an answer.
-
 Do not reveal internal reasoning.
-
-Generate exactly one next technical question.
 `;
 
-    const result =
-      await generateStructuredResponse({
-        systemInstruction:
-          evaluationSystemPrompt,
-        prompt,
-        responseSchema:
-          evaluationSchema,
-      });
+  const result =
+    await generateStructuredResponse({
+      systemInstruction:
+        evaluationSystemPrompt,
+      prompt,
+      responseSchema:
+        answerEvaluationSchema,
+    });
 
-    return {
-      evaluation: {
-        score: result.score,
-        understanding:
-          result.understanding,
-        strengths:
-          result.strengths,
-        gaps:
-          result.gaps,
-        technicalAccuracy:
-          result.technicalAccuracy,
-        depth: result.depth,
-        needsFollowUp:
-          result.needsFollowUp,
-        followUpFocus:
-          result.followUpFocus,
-        recommendedAction:
-          result.recommendedAction,
-      },
-
-      nextQuestion:
-        result.nextQuestion,
-    };
+  return {
+    score: result.score,
+    understanding:
+      result.understanding,
+    strengths:
+      result.strengths,
+    gaps:
+      result.gaps,
+    technicalAccuracy:
+      result.technicalAccuracy,
+    depth:
+      result.depth,
+    needsFollowUp:
+      result.needsFollowUp,
+    followUpFocus:
+      result.followUpFocus,
+    recommendedAction:
+      result.recommendedAction,
   };
+};

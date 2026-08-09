@@ -281,29 +281,34 @@ function InterviewPage() {
   }
 
   const questionsAnswered =
-    progress?.questionsAnswered ?? 0;
+  progress?.questionsAnswered ?? 0;
 
-  const minimumQuestions =
-    progress?.minimumQuestions ?? 8;
+const minimumQuestions =
+  progress?.minimumQuestions ?? 8;
 
-  const daysCovered =
-    progress?.daysCovered ??
-    progress?.coveredDays?.length ??
-    0;
+const daysCovered =
+  progress?.daysCovered ??
+  progress?.coveredDays?.length ??
+  0;
 
-  const minimumDays =
-    progress?.minimumDays ?? 4;
+const minimumDays =
+  progress?.minimumDays ?? 4;
 
-  const difficulty =
-    progress?.currentDifficulty ||
-    "foundational";
+const displayedDaysCovered = Math.min(
+  daysCovered,
+  minimumDays,
+);
 
-  const questionProgress = Math.min(
-    100,
-    Math.round(
-      (questionsAnswered / minimumQuestions) * 100,
-    ),
-  );
+const difficulty =
+  progress?.currentDifficulty ||
+  "foundational";
+
+const questionProgress = Math.min(
+  100,
+  Math.round(
+    (questionsAnswered / minimumQuestions) * 100,
+  ),
+);
 
   return (
     <section className="w-full py-2 sm:py-4">
@@ -358,7 +363,7 @@ function InterviewPage() {
             </p>
 
             <p className="mt-1 text-sm font-semibold text-white">
-              {daysCovered}/{minimumDays} days covered
+              {displayedDaysCovered}/{minimumDays} days covered
             </p>
           </div>
 

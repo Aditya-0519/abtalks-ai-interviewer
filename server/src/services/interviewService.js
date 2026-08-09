@@ -8,7 +8,7 @@ import {
 } from "./interviewSessionStore.js";
 import { buildCandidateIntelligence } from "./candidateProfileService.js";
 import {
-  evaluateAnswerAndGenerateNextQuestion,
+  evaluateAnswer,
   generateFirstQuestion,
   generateQuestionForTopic,
 } from "./questionService.js";
@@ -43,11 +43,42 @@ const selectInitialTopic = (candidate, intelligence) => {
   );
 };
 
+/*
+ * Select an uncovered curriculum topic when the interview
+ * still needs to satisfy the minimum curriculum coverage.
+ *
+ * Priority learning days are preferred, but the selected
+ * topic MUST belong to a day that has not yet been covered.
+ */
+const selectRequiredCoverageTopic = (session) => {
+  const coveredDays = new Set(session.coveredDays);
+
+  const priorityDays = new Set(
+    session.candidateIntelligence.learningSignals
+      .priorityDays,
+  );
+
+  const priorityTopic = curriculum.find(
+    (topic) =>
+      priorityDays.has(topic.day) &&
+      !coveredDays.has(topic.day),
+  );
+
+  if (priorityTopic) {
+    return priorityTopic;
+  }
+
+  return curriculum.find(
+    (topic) => !coveredDays.has(topic.day),
+  );
+};
+
 const selectNextTopic = (session) => {
   const coveredDays = new Set(session.coveredDays);
 
   const priorityDays = new Set(
-    session.candidateIntelligence.learningSignals.priorityDays,
+    session.candidateIntelligence.learningSignals
+      .priorityDays,
   );
 
   const priorityTopic = curriculum.find(
@@ -75,7 +106,6 @@ const selectNextTopic = (session) => {
 
 const hasMinimumCoverage = (session) => {
   return (
-    session.questionsAsked.length >= MINIMUM_QUESTIONS &&
     session.answers.length >= MINIMUM_QUESTIONS &&
     session.coveredDays.length >= MINIMUM_DAYS
   );
@@ -91,7 +121,9 @@ const calculateAverageScore = (evaluations) => {
     0,
   );
 
-  return Number((total / evaluations.length).toFixed(2));
+  return Number(
+    (total / evaluations.length).toFixed(2),
+  );
 };
 
 const collectUniqueItems = (evaluations, field) => {
@@ -102,101 +134,11 @@ const collectUniqueItems = (evaluations, field) => {
   return [...new Set(items)];
 };
 
-const countValues = (items, field) => {
-  return items.reduce((counts, item) => {
-    const value = item[field];
-
-    if (value) {
-      counts[value] = (counts[value] || 0) + 1;
-    }
-
-    return counts;
-  }, {});
-};
-
-const getPerformanceLevel = (score) => {
-  if (score >= 8.5) {
-    return "excellent";
-  }
-
-  if (score >= 7) {
-    return "strong";
-  }
-
-  if (score >= 5) {
-    return "developing";
-  }
-
-  return "needs-improvement";
-};
-
-const getScoreRecommendation = (score) => {
-  if (score >= 8.5) {
-    return "Strong technical performance. Continue practicing system design trade-offs and explaining implementation decisions with precision.";
-  }
-
-  if (score >= 7) {
-    return "Good technical foundation. Focus on deeper reasoning, edge cases, and communicating trade-offs more clearly.";
-  }
-
-  if (score >= 5) {
-    return "The candidate demonstrates a developing foundation. Strengthen weaker curriculum areas and practice explaining concepts with concrete technical examples.";
-  }
-
-  return "The candidate should strengthen core technical concepts and practice structured explanations before attempting more advanced interview questions.";
-};
-
-const buildAreaAnalysis = (evaluations) => {
-  const areaMap = new Map();
-
-  for (const evaluation of evaluations) {
-    const topic = evaluation.topic;
-
-    if (!topic) {
-      continue;
-    }
-
-    if (!areaMap.has(topic)) {
-      areaMap.set(topic, {
-        topic,
-        questions: 0,
-        totalScore: 0,
-        strong: 0,
-        weak: 0,
-      });
-    }
-
-    const area = areaMap.get(topic);
-
-    area.questions += 1;
-    area.totalScore += evaluation.score;
-
-    if (evaluation.understanding === "strong") {
-      area.strong += 1;
-    }
-
-    if (
-      evaluation.understanding === "weak" ||
-      evaluation.technicalAccuracy === "weak"
-    ) {
-      area.weak += 1;
-    }
-  }
-
-  return [...areaMap.values()]
-    .map((area) => ({
-      ...area,
-      averageScore: Number(
-        (area.totalScore / area.questions).toFixed(2),
-      ),
-    }))
-    .sort((a, b) => b.averageScore - a.averageScore);
-};
-
 const buildFeedback = (session) => {
   const evaluations = session.evaluations;
 
-  const overallScore = calculateAverageScore(evaluations);
+  const averageScore =
+    calculateAverageScore(evaluations);
 
   const strengths = collectUniqueItems(
     evaluations,
@@ -211,8 +153,7 @@ const buildFeedback = (session) => {
   const strongestAreas = evaluations
     .filter(
       (evaluation) =>
-        evaluation.understanding === "strong" &&
-        evaluation.technicalAccuracy === "strong",
+        evaluation.understanding === "strong",
     )
     .map((evaluation) => evaluation.topic)
     .filter(Boolean);
@@ -226,94 +167,36 @@ const buildFeedback = (session) => {
     .map((evaluation) => evaluation.topic)
     .filter(Boolean);
 
-  const difficultyDistribution = countValues(
-    session.questionsAsked,
-    "difficulty",
-  );
-
-  const technicalAccuracyDistribution = countValues(
-    evaluations,
-    "technicalAccuracy",
-  );
-
-  const depthDistribution = countValues(
-    evaluations,
-    "depth",
-  );
-
-  const understandingDistribution = countValues(
-    evaluations,
-    "understanding",
-  );
-
-  const followUps = evaluations.filter(
-    (evaluation) => evaluation.needsFollowUp,
-  ).length;
-
-  const areaAnalysis = buildAreaAnalysis(evaluations);
-
-  const topStrengths = [
-    ...new Set(strongestAreas),
-  ].slice(0, 5);
-
-  const topWeaknesses = [
-    ...new Set(weakestAreas),
-  ].slice(0, 5);
-
   return {
-    overallScore,
-    performanceLevel:
-      getPerformanceLevel(overallScore),
-
+    overallScore: averageScore,
     questionsEvaluated: evaluations.length,
-
     curriculumDaysCovered:
       session.coveredDays.length,
-
     coveredDays: session.coveredDays,
-
-    coveredTopics: session.coveredTopics,
-
-    performanceSummary:
-      getScoreRecommendation(overallScore),
-
     strengths,
     gaps,
-
-    strongestAreas: topStrengths,
-    weakestAreas: topWeaknesses,
-
-    statistics: {
-      followUps,
-      difficultyDistribution,
-      technicalAccuracyDistribution,
-      depthDistribution,
-      understandingDistribution,
-    },
-
-    areaAnalysis,
-
-    candidateIntelligence:
-      session.candidateIntelligence,
-
+    strongestAreas: [
+      ...new Set(strongestAreas),
+    ],
+    weakestAreas: [
+      ...new Set(weakestAreas),
+    ],
     recommendation:
-      getScoreRecommendation(overallScore),
+      averageScore >= 8
+        ? "Strong technical understanding demonstrated across the interview."
+        : averageScore >= 6
+          ? "Good foundation demonstrated, with several areas that would benefit from deeper technical practice."
+          : "The candidate should strengthen core concepts and practice explaining technical decisions with greater depth.",
   };
 };
 
 const buildProgress = (session) => ({
   questionsAsked: session.questionsAsked.length,
   questionsAnswered: session.answers.length,
-
   minimumQuestions: MINIMUM_QUESTIONS,
-
   daysCovered: session.coveredDays.length,
   minimumDays: MINIMUM_DAYS,
-
   coveredDays: session.coveredDays,
-
-  currentDifficulty: session.currentDifficulty,
-
   status: session.status,
 });
 
@@ -389,11 +272,17 @@ export const startInterview = async ({
       },
     ],
 
-    coveredDays: [initialTopic.day],
+    /*
+     * IMPORTANT:
+     * A curriculum day is counted only after the
+     * candidate answers a question from that day.
+     *
+     * Therefore the first question's day is NOT
+     * counted here.
+     */
+    coveredDays: [],
 
-    coveredTopics: [
-      getTopicName(initialTopic),
-    ],
+    coveredTopics: [],
 
     followUps: [],
 
@@ -470,15 +359,23 @@ export const submitInterviewAnswer = async ({
     );
   }
 
-  const evaluationResult =
-    await evaluateAnswerAndGenerateNextQuestion({
+  /*
+   * STEP 1
+   *
+   * Evaluate the candidate answer first.
+   *
+   * No next question is generated yet.
+   */
+  const evaluation =
+    await evaluateAnswer({
       candidate: session.candidate,
       candidateIntelligence:
         session.candidateIntelligence,
       curriculumTopic: currentTopic,
       previousQuestions:
         session.questionsAsked,
-      previousAnswers: session.answers,
+      previousAnswers:
+        session.answers,
       previousEvaluations:
         session.evaluations,
       latestQuestion,
@@ -486,6 +383,11 @@ export const submitInterviewAnswer = async ({
       progress: buildProgress(session),
     });
 
+  /*
+   * STEP 2
+   *
+   * Store the newly submitted answer.
+   */
   const answerRecord = {
     ...latestAnswer,
     question: latestQuestion.text,
@@ -493,12 +395,17 @@ export const submitInterviewAnswer = async ({
     topic: latestQuestion.topic,
   };
 
+  /*
+   * STEP 3
+   *
+   * Store the evaluation.
+   */
   const evaluationRecord = {
     questionId: latestQuestion.id,
     answerId: latestAnswer.id,
     topic: latestQuestion.topic,
     day: latestQuestion.day,
-    ...evaluationResult.evaluation,
+    ...evaluation,
     createdAt: new Date().toISOString(),
   };
 
@@ -512,12 +419,58 @@ export const submitInterviewAnswer = async ({
     evaluationRecord,
   ];
 
+  /*
+   * STEP 4
+   *
+   * The candidate has now answered the latest question.
+   *
+   * ONLY NOW does the question's curriculum day
+   * become covered.
+   *
+   * The array remains unique.
+   */
+  const coveredDays = session.coveredDays.includes(
+    latestQuestion.day,
+  )
+    ? session.coveredDays
+    : [
+        ...session.coveredDays,
+        latestQuestion.day,
+      ];
+
+  const coveredTopics =
+    session.coveredTopics.includes(
+      latestQuestion.topic,
+    )
+      ? session.coveredTopics
+      : [
+          ...session.coveredTopics,
+          latestQuestion.topic,
+        ];
+
   const answeredSession = {
     ...session,
     answers,
     evaluations,
+    coveredDays,
+    coveredTopics,
   };
 
+  /*
+   * STEP 5
+   *
+   * COMPLETION CHECK.
+   *
+   * The newly submitted answer has already been added.
+   *
+   * Therefore:
+   *
+   * answers.length = current answered question count
+   * coveredDays.length = actual unique days answered
+   *
+   * This check happens BEFORE any next question
+   * is selected or generated.
+   */
   if (hasMinimumCoverage(answeredSession)) {
     const feedback =
       buildFeedback(answeredSession);
@@ -532,41 +485,84 @@ export const submitInterviewAnswer = async ({
       });
 
     return {
-  reply: "Interview completed.",
-  done: true,
-  feedback: completedSession.feedback,
-  progress: buildProgress(completedSession),
-};
+      reply: "Interview completed.",
+      done: true,
+      feedback:
+        completedSession.feedback,
+      progress:
+        buildProgress(completedSession),
+    };
   }
 
+  /*
+   * STEP 6
+   *
+   * The interview is NOT complete.
+   *
+   * Only now can we determine what the next
+   * question should be.
+   */
   const action =
-    evaluationResult.evaluation
-      .recommendedAction;
+    evaluation.recommendedAction;
 
   const useFollowUp =
     action === "follow_up" ||
     action === "probe_weakness";
 
-  const nextTopic = useFollowUp
-    ? currentTopic
-    : selectNextTopic(answeredSession);
+  let nextTopic;
 
+  /*
+   * CRITICAL CURRICULUM COVERAGE RULE:
+   *
+   * While fewer than 4 unique curriculum days
+   * have actually been answered, we MUST select
+   * an uncovered day.
+   *
+   * This rule overrides follow-up recommendations.
+   */
+  if (
+    answeredSession.coveredDays.length <
+    MINIMUM_DAYS
+  ) {
+    nextTopic =
+      selectRequiredCoverageTopic(
+        answeredSession,
+      );
+  } else {
+    /*
+     * Once the minimum curriculum coverage is met,
+     * normal adaptive behavior resumes.
+     */
+    nextTopic = useFollowUp
+      ? currentTopic
+      : selectNextTopic(answeredSession);
+  }
+
+  if (!nextTopic) {
+    throw createHttpError(
+      "No suitable curriculum topic is available",
+      500,
+    );
+  }
+
+  /*
+   * STEP 7
+   *
+   * Generate the next question ONLY after
+   * completion has been checked.
+   */
   const nextQuestionResult =
-    useFollowUp
-      ? evaluationResult.nextQuestion
-      : await generateQuestionForTopic({
-          candidate: session.candidate,
-          candidateIntelligence:
-            session.candidateIntelligence,
-          curriculumTopic: nextTopic,
-          previousQuestions:
-            session.questionsAsked,
-          previousAnswers: answers,
-          previousEvaluations:
-            evaluations,
-          previousEvaluation:
-            evaluationResult.evaluation,
-        });
+    await generateQuestionForTopic({
+      candidate: session.candidate,
+      candidateIntelligence:
+        session.candidateIntelligence,
+      curriculumTopic: nextTopic,
+      previousQuestions:
+        session.questionsAsked,
+      previousAnswers: answers,
+      previousEvaluations: evaluations,
+      previousEvaluation: evaluation,
+    });
 
   const nextQuestion = {
     id: randomUUID(),
@@ -577,26 +573,15 @@ export const submitInterviewAnswer = async ({
       nextQuestionResult.difficulty,
   };
 
-  const coveredDays =
-    answeredSession.coveredDays.includes(
-      nextTopic.day,
-    )
-      ? answeredSession.coveredDays
-      : [
-          ...answeredSession.coveredDays,
-          nextTopic.day,
-        ];
-
-  const coveredTopics =
-    answeredSession.coveredTopics.includes(
-      getTopicName(nextTopic),
-    )
-      ? answeredSession.coveredTopics
-      : [
-          ...answeredSession.coveredTopics,
-          getTopicName(nextTopic),
-        ];
-
+  /*
+   * IMPORTANT:
+   *
+   * DO NOT add nextTopic.day to coveredDays here.
+   *
+   * The next question has only been generated.
+   * Its day becomes covered only after the candidate
+   * actually answers it.
+   */
   const questionsAsked = [
     ...answeredSession.questionsAsked,
     nextQuestion,
@@ -630,8 +615,12 @@ export const submitInterviewAnswer = async ({
     questionsAsked,
     conversation,
 
-    coveredDays,
-    coveredTopics,
+    /*
+     * coveredDays intentionally remains unchanged.
+     *
+     * The next question's day is NOT covered until
+     * its answer is submitted.
+     */
 
     followUps: useFollowUp
       ? [
@@ -639,9 +628,7 @@ export const submitInterviewAnswer = async ({
           {
             questionId: nextQuestion.id,
             focus:
-              evaluationResult
-                .evaluation
-                .followUpFocus,
+              evaluation.followUpFocus,
           },
         ]
       : answeredSession.followUps,
